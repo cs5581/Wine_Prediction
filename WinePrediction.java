@@ -26,8 +26,8 @@ public class WinePrediction {
 
 
         SparkSession spark = SparkSession.builder()
-                .appName(APP_NAME)
-                .master("local[*]")
+                .appName("Wine-quality-test")
+                .master()
                 .config("spark.executor.memory", "2147480000")
                 .config("spark.driver.memory", "2147480000")
                 .config("spark.testing.memory", "2147480000")
@@ -40,13 +40,14 @@ public class WinePrediction {
 
         }
 
-        File tempFile = new File(TESTING_DATASET);
+        File tempFile = new File("TestDataset.csv");
         boolean exists = tempFile.exists();
         if(exists){
             WinePrediction parser = new WinePrediction();
             parser.logisticRegression(spark);
+            System.out.println("..");
         }else{
-            System.out.println(TESTING_DATASET);
+            System.out.println("TestDataset.csv");
             System.out.print(" doesn't exist");
         }
 
@@ -57,8 +58,8 @@ public class WinePrediction {
 
     public void logisticRegression(SparkSession spark) {
         System.out.println("TestingDataSet Metrics \n");
-        PipelineModel pipelineModel = PipelineModel.load(MODEL_PATH);
-        Dataset<Row> testDf = getDataFrame(spark, true, TESTING_DATASET).cache();
+        PipelineModel pipelineModel = PipelineModel.load("TrainingModel");
+        Dataset<Row> testDf = getDataFrame(spark, true, "TestDataset.csv").cache();
         Dataset<Row> predictionDF = pipelineModel.transform(testDf).cache();
         predictionDF.select("features", "label", "prediction").show(5, false);
         printMertics(predictionDF);
