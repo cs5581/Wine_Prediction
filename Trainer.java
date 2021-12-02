@@ -16,8 +16,8 @@ import org.apache.spark.sql.SparkSession;
 import java.io.File;
 import java.io.IOException;
 
-import static com.mycompany.app.Constants.*;
-import static org.apache.hadoop.fs.s3a.Constants.SECRET_KEY;
+import static com.mycompany.app.Finals.*;
+import static org.apache.hadoop.fs.s3a.Finals.SECRET_KEY;
 
 
 public class Trainer {
@@ -36,7 +36,7 @@ public class Trainer {
 
 //Beginning the Spark Session
         SparkSession spark = SparkSession.builder()
-                .appName(APP_NAME)
+                .appName("Wine-quality-test")
                 .master()
                 .config("spark.executor.memory", "2147480000")
                 .config("spark.driver.memory", "2147480000")
@@ -50,11 +50,12 @@ public class Trainer {
         }
 
         //Pulling training data set
-        File tempFile = new File(TRAINING_DATASET);
+        File tempFile = new File("TrainingDataset.csv");
         boolean exists = tempFile.exists();
         if(exists){
             Trainer parser = new Trainer();
             parser.logisticRegression(spark);
+            System.out.println("..");
         }else{
             System.out.print("TrainingDataset.csv doesn't exists");
             System.out.println("PWD: " + System.getProperty("user.dir"));
@@ -64,8 +65,7 @@ public class Trainer {
     }
 
     public void logisticRegression(SparkSession spark) {
-        System.out.println();
-        Dataset<Row> lblFeatureDf = getDataFrame(spark, true, TRAINING_DATASET).cache();
+        Dataset<Row> lblFeatureDf = getDataFrame(spark, true, "TrainingDataset.csv").cache();
         LogisticRegression logReg = new LogisticRegression().setMaxIter(100).setRegParam(0.0);
 
         Pipeline pl1 = new Pipeline();
@@ -85,23 +85,23 @@ public class Trainer {
         System.out.println("Accuracy: " + accuracy);
         System.out.println("F-measure: " + fMeasure);
 
-        Dataset<Row> testingDf1 = getDataFrame(spark, true, VALIDATION_DATASET).cache();
+        Dataset<Row> testingDf1 = getDataFrame(spark, true, "ValidationDataset.csv").cache();
 
         Dataset<Row> results = model1.transform(testingDf1);
 
 
-        System.out.println("\n Validation Training Set Metrics");
+        System.out.println("\n Validation Metrics");
         results.select("features", "label", "prediction").show(5, false);
         printMertics(results);
 
         try {
-            model1.write().overwrite().save(MODEL_PATH);
+            model1.write().overwrite().save("TrainingModel");
         } catch (IOException e) {
             logger.error(e);
         }
     }
 
-    public void printMertics(Dataset<Row> predictions) {
+    public void printMetrics(Dataset<Row> predictions) {
         System.out.println();
         MulticlassClassificationEvaluator evaluator = new MulticlassClassificationEvaluator();
         evaluator.setMetricName("accuracy");
@@ -121,10 +121,10 @@ public class Trainer {
         validationDf = validationDf.withColumnRenamed("fixed acidity", "fixed_acidity")
                 .withColumnRenamed("volatile acidity", "volatile_acidity")
                 .withColumnRenamed("citric acid", "citric_acid")
-                .withColumnRenamed("residual sugar", "residual_sugar")
-                .withColumnRenamed("chlorides", "chlorides")
                 .withColumnRenamed("free sulfur dioxide", "free_sulfur_dioxide")
                 .withColumnRenamed("total sulfur dioxide", "total_sulfur_dioxide")
+                .withColumnRenamed("residual sugar", "residual_sugar")
+                .withColumnRenamed("chlorides", "chlorides")
                 .withColumnRenamed("density", "density").withColumnRenamed("pH", "pH")
                 .withColumnRenamed("sulphates", "sulphates").withColumnRenamed("alcohol", "alcohol")
                 .withColumnRenamed("quality", "label");
